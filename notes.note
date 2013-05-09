@@ -1,0 +1,27 @@
+school:
+  math:
+    <tags = math, language><hash = jfioj234902jf>
+    languages can be defined with special syntax
+    alphabets represent parts of the language
+
+    <tags = math, science><hash = jf4902jf>
+    set theory is used a lot in bioinformatics
+    FM arrays are complex, and use burrows wheeler trasforms
+
+  science:
+    Pluto takes 240 years to orbit the sun. 
+    Pluto is no longer a planet. 
+
+    <tags = math, science><hash = jf4902jf>
+    set theory is used a lot in bioinformatics
+    FM arrays are complex, and use burrows wheeler trasforms
+
+  language:
+    <tags = math, language><hash = jfioj234902jf>
+    languages can be defined with special syntax
+    alphabets represent parts of the language
+
+    Languages can be difficult, but having the right
+    tools can make it easier. 
+
+  end:
