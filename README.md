@@ -6,11 +6,11 @@ Install:
   - clone everything to a folder in .vim/bundle
   - put this in your ~/.vimrc: set conceallevel=1
 
-Use: Press gy in normal mode to all notes matching the one with the cursor on it. Please see the sample notes file for formatting. To add a new note simple put <tags = tag1, tag2, tagN> above your new note and press `gy` in normal mode.  
+Use: Press `gy` in normal mode to all notes matching the one with the cursor on it. Please see the sample notes file for formatting. To add a new note simple put \<tags = tag1, tag2, tagN\> above your new note and press `gy` in normal mode.  
 
 Tag coloumns are hidden by default using vim's conceal feature. 
 
-![screenshot](http://i.imgur.com/6zHuck9.png)
+![screenshot](http://i.imgur.com/68fEVD1.png)
 
 ## To Do:
  * Make notes auto remove from a section if you delete a tag
