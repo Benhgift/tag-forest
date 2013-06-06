@@ -24,7 +24,7 @@ endf
 fu! Find_note_and_replace (tag_matchline, hash, yanked_text, cursor)
   let l:yanked_text = a:yanked_text
   "get starting note position from its tag position
-  let l:starting_note_pos = Get_first_hashed_line (a:tag_matchline, a:hash)
+  let l:starting_note_pos = Get_first_hashed_line (a:tag_matchline+1, a:hash)
   "check that the hash was found
   if starting_note_pos == 0
     let l:line_to_stop_at = a:tag_matchline 
@@ -67,7 +67,7 @@ fu! Make_hash (current_line)
 
   for line in line_text
     for character in split (line, '\zs')
-      let nums += char2nr (character) * 121
+      let nums += char2nr (character) * 123
     endfo
   endfo
   let new_hash = string (nums)
@@ -91,13 +91,13 @@ fu! Get_line_of_match_unless_outdent (starting_line, regex, reverse)
   let l:botline = line ('$')
   let l:linetext = getline (a:starting_line)
   let l:end_line = a:starting_line
-  let l:next_outdent = Get_next_outdent (a:starting_line, a:reverse)
+  let l:next_outdent = Get_next_outdent (a:starting_line, a:reverse) +1
 
   while 1 
     "stop at match, bottom line, outdent, or line 0
     if match (linetext, a:regex) >= 0 | break | endif
-    if end_line == botline | break | endif
-    if end_line == next_outdent | break | endif
+    if end_line == botline && !a:reverse | break | endif
+    if end_line == next_outdent && !a:reverse | break | endif
     if end_line < 1 | break | endif
     "incriment end_line and get text
     let end_line += a:reverse ? -1 : 1
@@ -112,6 +112,10 @@ fu! Get_next_outdent (starting_line, reverse)
   let l:starting_indent = IndentLevel (a:starting_line)
   let l:new_indent = starting_indent +1
   let l:end_line = a:starting_line
+  "special case
+  if a:starting_line == botline
+    return 0
+  endif
 
   while 1
     "stop at outdent, bottom line, or line 0
@@ -130,8 +134,11 @@ fu! Get_tag_line (tag_name)
 endf
 
 fu! Get_end_line_from_meta (starting_line)
+  "get the metaline, or the newilne
   let l:next_tag_line =  Get_line_of_match_unless_outdent (a:starting_line + 1, "<tags", 0) - 1
   let l:next_line_break = Get_line_of_match_unless_outdent (a:starting_line + 1, "^$", 0) - 1
+  "special case
+  if next_tag_line == a:starting_line | return a:starting_line +1 | endif
   return (next_tag_line < next_line_break) ? next_tag_line : next_line_break
 endf
 
@@ -145,19 +152,5 @@ endf
 fu! IndentLevel (line_num)
   return indent (a:line_num) / &shiftwidth
 endf
-
-"playing with the idea of having my loops inline
-"fu! Play (fn)
-"  for x in a:fn
-"    let Y = function(x)
-"    echo Y(["poo"])
-"  endfor
-"endf
-"
-"fu! Moo (text)
-"  for x in a:text
-"    echo x
-"  return "hiii"
-"endf
 
 nnoremap gy :call Update_all_identical_notes()<CR>
