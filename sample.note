@@ -24,8 +24,6 @@ school:
     <tags = math, language><hash = 1399002>
     languages can be defined with special syntax
     alphabets represent parts of the language
-
+    <tags = math, language>
     Languages can be difficult, but having the right
     tools can make it easier. 
-
-  end:
