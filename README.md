@@ -4,11 +4,16 @@ Tag your notes when they apply to different subsections, and update those tagged
 
 ### Install: 
   [Pathogen](https://github.com/tpope/vim-pathogen):
+
   - `git clone https://github.com/Corm/Tag-forrest.git ~/.vim/bundle/`
+
   [Vundle](https://github.com/gmarik/vundle):
+
   - Put `Bundle 'Corm/Tag-forrest'` into your ~/.vimrc 
   - `:BundleInstall`
+
   [Manual](http://i.imgur.com/oh3QVmh.gif?1):
+
   - Download and unzip all files into the ~/.vim directory (Windows: ~/vimfiles)
 
 ### Use: 
