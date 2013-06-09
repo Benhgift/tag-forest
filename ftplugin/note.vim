@@ -298,3 +298,4 @@ endf
 
 nmap gy :call Update_all_linked_notes()<CR>
 nmap <leader>i :set ft=note<cr>
+set conceallevel=1

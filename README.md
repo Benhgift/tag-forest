@@ -3,8 +3,13 @@
 Tag your notes when they apply to different subsections, and update those tagged notes when you make changes. (Try the example file)
 
 ### Install: 
-  - clone everything to a folder in .vim/bundle
-  - put this in your ~/.vimrc: `set conceallevel=1`
+  [Pathogen](https://github.com/tpope/vim-pathogen):
+  - `git clone https://github.com/Corm/Tag-forrest.git ~/.vim/bundle/`
+  [Vundle](https://github.com/gmarik/vundle):
+  - Put `Bundle 'Corm/Tag-forrest'` into your ~/.vimrc 
+  - `:BundleInstall`
+  [Manual](http://i.imgur.com/oh3QVmh.gif?1):
+  - Download and unzip all files into the ~/.vim directory (Windows: ~/vimfiles)
 
 ### Use: 
 Press `gy` in normal mode to update all notes bound to the one with the cursor on it. Please see the sample notes file for formatting. To add a new note simply put `<tags = tag1, tag2, tagN>` above your new note and press `gy` in normal mode.  
