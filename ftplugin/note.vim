@@ -1,4 +1,5 @@
 fu! Update_all_linked_notes()
+  execute "silent normal zR"
   let l:cur_note_data = Parse_note_from_cursor ()
   if cur_note_data == {} | return | endif
   call Remove_notes_marked_for_death (cur_note_data)
@@ -35,7 +36,6 @@ endf
       let l:meta_data = Get_tags_and_hash (a:note_line)
       if meta_data == {} | return {} | endif
       let l:meta_text = Make_meta_text (meta_data.tags, meta_data.hash)
-      "call setline (meta_data.meta_line, getline (meta_data.meta_line). )
       return extend (meta_data, {'meta_text':meta_text})
     endf
 
@@ -157,7 +157,6 @@ endf
       endif
     endfo
     let a:note_db.tags = new_tags
-    "call setpos ('.', a:note_db.position)
     call Setpos_and_view ('.', a:note_db.position, a:note_db.topline_fill)
   endf
 
@@ -184,7 +183,6 @@ endf
       let position_change = Insert_note_at_tag (a:note_db, a_tag)
       let a:note_db.position[1] += position_change
     endfo
-    "call setpos ('.', a:note_db.position)
     call Setpos_and_view ('.', a:note_db.position, a:note_db.topline_fill)
   endf
 
@@ -243,7 +241,6 @@ endf
             endif
             let current_line += 1
           endw
-          "if current_line is line ('$') | let current_line +=1 | endif "bot_line fix
           return {'amount_removed':amount_removed, 'target_line':current_line}
         endf
 
@@ -269,11 +266,6 @@ endf
             endf
 
         fu! Get_section_end (start_line) "based on indent
-          "check 
-          " if botline
-          " if indent matches or is less
-          " if starting indent is 0...
-          "   check for text with 0 indent
           let line_db = {'bot_line':line ('$'), 'current_line':a:start_line +1}
           let line_db.section_indent = IndentLevel (a:start_line)
           let line_db.last_textline = a:start_line

@@ -2,29 +2,44 @@ school:
 
   math:
     <tags = math, science><hash = 1164262>
-    set theory is used a lot in bioinformatics
-    FM arrays are complex, and use burrows wheeler trasforms
+    set theory is used a lot in bioinformatics.
+    FM arrays are complex, and use burrows wheeler trasforms.
+    This block is a complete note. Notice the syntax on line 4 (you
+    can just ignore the "hash" part) 
     <tags = math, language>
-    I really like MATH and LANGUAGE
+    I really like MATH and LANGUAGE. Press gy on me
+    to update the language category with this valuable info.
     <tags = math><hash = 17106642>
-    languages can be defined with special syntax
-    alphabets represent parts of the language
+    Languages can be defined with special syntax.
+    Alphabets represent parts of the language.
+    Add a language tag to this note and press gy!
 
   science:
 
-    super science:
+    physics:
+      <tags = math, physics>
+      In 1934 Tesla claimed to have invented a doomsday decvice,
+      but destroyed his plans because it was too powerful.
+      He was also good at MATH.
+      Notice the indentation updates when you press gy on this.
+      This shows how you can use subsections. Very powerful!
 
-      This science, is SO super
-      This is more information on how ultimately super this science is
-      It's SO super! Did I mention that?
+      another subsection:
+
+        You can never have too many subsections!
+        But be careful to not have 2 identically named sections...
 
     Pluto takes 240 years to orbit the sun. 
     Pluto is no longer a planet. 
+    Notice that this note has no tags. Most notes won't. Press gy
+    anyway to see that nothing happens.
     <tags = math, science><hash = 1164262>
-    set theory is used a lot in bioinformatics
-    FM arrays are complex, and use burrows wheeler trasforms
+    set theory is used a lot in bioinformatics.
+    FM arrays are complex, and use burrows wheeler trasforms.
+    This block is a complete note. Notice the syntax on line 4 (you
+    can just ignore the "hash" part) 
 
   language:
-    <tags = language><hash = 7746647>
+
     Languages can be difficult, but having the right
     tools helps.
