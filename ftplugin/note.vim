@@ -1,35 +1,48 @@
 fu! Update_all_linked_notes()
   let l:cur_note_data = Parse_note_from_cursor ()
-  return
-  Update_other_matching_notes (current_note_data)
+  if cur_note_data == {} | return | endif
+  call Remove_notes_marked_for_death (cur_note_data)
+  call Update_other_matching_notes (cur_note_data)
 endf
 
 "Get info on starting note
-  fu! Parse_note_from_cursor
-    let l:note_data = {'position':getpos ('.')}
-    extend (Parse_a_note (note_data['position'])
+  fu! Parse_note_from_cursor ()
+    let l:pos_data = Get_pos_data ()
+    let l:note_data = Parse_a_note (pos_data['position'][1])
+    if note_data == {} | return {} | endif
+    call extend (note_data, pos_data)
     return note_data
+  endf
+
+  fu! Get_pos_data ()
+    let l:pos_data = {'position':getpos ('.')}
+    let l:topline_fill = pos_data.position[1] - winsaveview ().topline
+    call extend (pos_data, {'topline_fill':topline_fill})
+    return pos_data
   endf
 
   fu! Parse_a_note (note_line)
     " get metadata
-    let l:metadata = Get_metadata_from_note (note_line)
+    let l:metadata = Get_metadata_from_note (a:note_line)
+    if metadata == {} | return {} | endif
     " copy note and replace metadata
-    let l:note = {'note':Get_note_and_fix (metadata)
+    let l:note = {'note':Get_note_and_fix (metadata)}
     return extend (metadata, note)
   endf
 
   " get metadata
     fu! Get_metadata_from_note (note_line)
       let l:meta_data = Get_tags_and_hash (a:note_line)
-      let l:meta_text = Make_meta_text (tags, hash)
-      return extend (meta_data, meta_text)
+      if meta_data == {} | return {} | endif
+      let l:meta_text = Make_meta_text (meta_data.tags, meta_data.hash)
+      "call setline (meta_data.meta_line, getline (meta_data.meta_line). )
+      return extend (meta_data, {'meta_text':meta_text})
     endf
 
-      fu! Get_tags_and_hash (meta_line)
+      fu! Get_tags_and_hash (note_line)
         "get line number of meta_line
-        let l:meta_line = Get_line_num_with_meta_data_from (a:meta_line)
-          if (meta_line == 0) | return {} | endif
+        let l:meta_line = Get_line_num_with_meta_from (a:note_line)
+        if (meta_line == 0) | return {} | endif
         "get tags
         let l:tags = Get_tags (meta_line)
         "get hash
@@ -37,17 +50,41 @@ endf
         return {'meta_line':meta_line, 'tags':tags, 'hash':hash}
       endf
 
+        fu! Get_line_num_with_meta_from (note_line)
+          let l:min_search_line = a:note_line - 100 < 1 ? 1 : a:note_line - 100
+          let l:next_tag = search ('^\s*<tags = ', 'bn', min_search_line)
+          let l:next_linebreak = search ('^\s*$', 'bn', min_search_line)
+          return next_tag > next_linebreak ? next_tag : 0
+        endf
+
         fu! Get_or_make_hash (meta_line)
           let l:line_text = getline (a:meta_line)
           let l:hash = matchstr (line_text, 'hash\s*=\s*\zs\w\+')
-          if (hash == "") | let hash = Make_hash (line_with_meta) | endif
+          if (hash == "") 
+            let hash = Make_hash (a:meta_line) 
+            call setline (a:meta_line, getline (a:meta_line). "<hash = ". hash. ">")
+          endif
           return hash
         endf
+
+          fu! Make_hash (current_line)
+            let l:line_text = getline (a:current_line +1, a:current_line +4)
+            let l:new_hash = ""
+            let l:nums = 0
+            for line in line_text
+              for character in split (line, '\zs')
+                let nums += char2nr (character) * 991
+              endfo
+            endfo
+            let new_hash = string (nums)
+            return new_hash
+          endf
 
         fu! Get_tags (meta_line)
           let l:line_text = getline (a:meta_line)
           let l:tags = matchstr (line_text, 'tags\s*=\s*\zs[^>]\+\ze\>')
-          let l:all_tags = split (tags, '\W\+')
+          let l:all_tags = split (tags, ',')
+          let all_tags = Remove_trailing_space (all_tags)
           return all_tags
         endf
 
@@ -55,164 +92,217 @@ endf
       fu! Make_meta_text (tags, hash)
         let l:meta_text = "<tags = "
         for a_tag in a:tags
-          meta_text = meta_text. a_tag. ", "
+          if a_tag[0] != '-'
+            let meta_text = meta_text. a_tag. ", "
+          endif
         endfo
-        meta_text = meta_text[:-2]. "><hash = ". a:hash. ">"
+        let meta_text = meta_text[:-3]. "><hash = ". a:hash. ">"
         return meta_text
       endf
 
   " get repaired note
     fu! Get_note_and_fix (metadata)
-      let l:note = Copy_note_down (a:metadata['meta_line'])
-      note[0] = a:metadata['meta_text']
+      let l:note = Copy_note_down (a:metadata.meta_line)
+      let note = Remove_correct_indent (note)
+      let note[0] = a:metadata.meta_text
       return note
     endf
 
       fu! Copy_note_down (start_line)
-        let l:copy_till = Get_end_line_from_meta (a:meta_line)
-        return getline (a:start_line, copy_till)
+        let l:copy_till = Search_till (a:start_line +1, '<tags = \|^\s*$', 1)
+        return  getline (a:start_line, copy_till)
       endf
 
-"Update other matching notes 
-  fu! Update_other_matching_notes (note)
-    "note = tags, hash, a note copy
-    for a_tag in note.tags
-      let l:position_change += Insert_note_at_tag (note, a_tag)
-      let note.position += position_change
+      fu! Remove_correct_indent (old_note)
+        let l:note = Convert_tabs_to_spaces (a:old_note)
+        let l:starting_indent_pos = match (note[1], '\S')
+        let l:spaces = '^'. repeat ('\s', starting_indent_pos)
+        let l:new_note_line = ""
+        let l:new_note = [note[0]]
+        for counter in range (len (note) -1)
+          let new_note_line = substitute (note[counter+1], spaces, "", "") 
+          call add (new_note, new_note_line)
+        endfo
+        return new_note
+      endf
+
+        fu! Convert_tabs_to_spaces (old_note)
+          let l:new_note = []
+          let l:new_line = ""
+          for line in a:old_note
+            let new_line = substitute (line, '\t', repeat (" ", &shiftwidth), "g")
+            call add (new_note, new_line)
+          endfo
+          return new_note
+        endf
+
+      fu! Remove_trailing_space (note)
+        let l:new_note = []
+        for line in a:note 
+          call add (new_note, substitute(line, '^\s*\(.\{-}\)\s*$', '\1', ''))
+        endfo
+        return new_note
+      endf
+
+"Remove marked notes
+  fu! Remove_notes_marked_for_death (note_db)
+    let l:position_change = 0
+    let l:new_tags = []
+    for a_tag in a:note_db.tags
+      if a_tag[0] == '-'
+        let position_change = Remove_note_from_tag (a_tag[1:], a:note_db)
+        let a:note_db.position[1] += position_change
+      else
+        call add (new_tags, a_tag)
+      endif
     endfo
-    call setpos ('.', note.position)
+    let a:note_db.tags = new_tags
+    "call setpos ('.', a:note_db.position)
+    call Setpos_and_view ('.', a:note_db.position, a:note_db.topline_fill)
   endf
 
-  " insert note at a tag
-    fu! Insert_note_at_tag (note, a_tag)
-    endf"""""""""""""""""""""""""""
+    fu! Setpos_and_view (cursor, position, topline_fill)
+      call setpos (a:cursor, a:position)
+      let l:cur_pos = getpos (a:cursor)[1]
+      execute "silent normal ". "zt"
+      execute "silent normal ". a:topline_fill. "\<c-Y>"
+    endf
 
-      "find the line with the tag
-      let l:tag_matchline = Get_tag_line (meta.tags[x]. ':')
-      "find note below the tag by its hash and replace it all
-      let l:tmp = Find_note_and_replace (tag_matchline, meta.hash, yanked_text, current_line)
-      "update the cursor variable since lines were removed/added
-      let p[1] += tmp 
-    endfo
-    "update cursor
-    call setpos ('.', p)
-  endf
-   
- 
- 
-  fu! Find_note_and_replace (tag_matchline, hash, yanked_text, cursor)
-    let l:yanked_text = a:yanked_text
-    "get starting note position from its tag position
-    let l:starting_note_pos = Get_first_hashed_line (a:tag_matchline+1, a:hash)
-    "check that the hash was found
-    if starting_note_pos == 0
-      let l:line_to_stop_at = a:tag_matchline 
-      let starting_note_pos = a:tag_matchline +1
-    else "if hash was found:
-      "get end of note position
-      let l:line_to_stop_at = Get_end_line_from_meta (starting_note_pos)
-      "delete it
-      execute "silent ". starting_note_pos. ",". line_to_stop_at. "delete_"
-    endif
-    "append new note
-    call append(starting_note_pos-1, yanked_text)
-    "return the amount that this changes our cursor pos
-    let l:changed_amount =  len (a:yanked_text) -((line_to_stop_at +1) -starting_note_pos)
-    return Get_cursor_adjust (starting_note_pos, a:cursor, changed_amount)
-  endf
-
-  fu! Get_cursor_adjust (changed_line, cursor_line, changed)
-    return a:changed_line < a:cursor_line ? a:changed : 0
-  endf
-
-  fu! Make_hash (current_line)
-    let l:line_text = getline (a:current_line +1, a:current_line +3)
-    let l:new_hash = ""
-    let l:nums = 0
-
-    for line in line_text
-      for character in split (line, '\zs')
-        let nums += char2nr (character) * 123
-      endfo
-    endfo
-    let new_hash = string (nums)
-    return new_hash
-  endf
-
-  fu! Yank_current_note (meta_line)
-    let l:copy_till = Get_end_line_from_meta (a:meta_line)
-    return getline (a:meta_line, copy_till)
-  endf
-
-  fu! Get_first_hashed_line (starting_point, hash)
-    let l:match_line = Get_line_of_match_unless_outdent (a:starting_point, a:hash, 0)
-    let l:outdent_line = Get_next_outdent (a:starting_point, 0)
-    return (match_line < outdent_line) ? match_line : 0
-  endf
-
-  fu! Get_line_of_match_unless_outdent (starting_line, regex, reverse)
-    let l:botline = line ('$')
-    let l:linetext = getline (a:starting_line)
-    let l:end_line = a:starting_line
-    let l:next_outdent = Get_next_outdent (a:starting_line, a:reverse) +1
-
-    while 1 
-      "stop at match, bottom line, outdent, or line 0
-      if match (linetext, a:regex) >= 0 | break | endif
-      if end_line == botline && !a:reverse | break | endif
-      if end_line == next_outdent && !a:reverse | break | endif
-      if end_line < 1 | break | endif
-      "incriment end_line and get text
-      let end_line += a:reverse ? -1 : 1
-      let linetext = getline (end_line)
-    endw
-    return end_line
-  endf
-
-  fu! Get_next_outdent (starting_line, reverse) 
-    let l:botline = line ('$')
-    let l:end_line = a:starting_line
-    let l:starting_indent = IndentLevel (a:starting_line)
-    let l:new_indent = starting_indent +1
-    let l:end_line = a:starting_line
-    "special case
-    if a:starting_line == botline
+    fu! Remove_note_from_tag (a_tag, note_db)
+      let l:removal_data = Prepare_note_spot (a:note_db.hash, a:a_tag)
+      if a:note_db.position[1] > removal_data.target_line
+        return 0 - removal_data.amount_removed
+      endif
       return 0
-    endif
+    endf
 
-    while 1
-      "stop at outdent, bottom line, or line 0
-      if (new_indent < starting_indent) && (new_indent != 0) | break | endif
-      if (end_line == botline) | break | endif
-      if (end_line < 1) | break | endif
-      "incriment end_line and indent level 
-      let end_line += a:reverse ? -1 : 1
-      let new_indent = IndentLevel (end_line)
-    endw
-    return end_line
+"Update other matching notes 
+  fu! Update_other_matching_notes (note_db)
+    "note = tags, hash, a note copy
+    let l:position_change = 0
+    for a_tag in a:note_db.tags
+      let position_change = Insert_note_at_tag (a:note_db, a_tag)
+      let a:note_db.position[1] += position_change
+    endfo
+    "call setpos ('.', a:note_db.position)
+    call Setpos_and_view ('.', a:note_db.position, a:note_db.topline_fill)
   endf
 
-  fu! Get_tag_line (tag_name)
-    return Get_line_of_match_unless_outdent (1, a:tag_name, 0)
-  endf
+  "insert note at a tag
+    fu! Insert_note_at_tag (note_db, a_tag)
+      let l:note_pos = Prepare_note_spot (a:note_db.hash, a:a_tag)
+      if note_pos == {} | return 0 | endif
+      call Insert_note_with_correct_indentation (note_pos, a:note_db)
+      let l:movement = Check_if_movement_required (a:note_db, note_pos)
+      return movement
+    endf
+      
+      fu! Insert_note_with_correct_indentation (note_pos, note_db)
+        let l:indentation = IndentLevel (a:note_pos.tag_line) +1 
+        let l:tab_string = ""
+        let l:indented_note = []
+        for indent in range (indentation)
+          let tab_string = tab_string. repeat (" ", &shiftwidth)
+        endfo
+        for line in a:note_db.note
+          let indented_note += [tab_string. line]
+        endfo
+        call append (a:note_pos.target_line, indented_note)
+      endf
 
-  fu! Get_end_line_from_meta (starting_line)
-    "get the metaline, or the newilne
-    let l:next_tag_line =  Get_line_of_match_unless_outdent (a:starting_line + 1, '<tags\|^\s*$', 0) - 1
-    "special case
-    if next_tag_line == a:starting_line | return a:starting_line +1 | endif
-    return next_tag_line
-  endf
+      fu! Check_if_movement_required (note_db, note_pos)
+        if a:note_db.position[1] > a:note_pos.target_line
+          return len (a:note_db.note) - a:note_pos.amount_removed 
+        else
+          return 0
+        endif
+      endf
+      
+      fu! Prepare_note_spot (hash, a_tag)
+        "find line with tag
+        let l:tag_matchline = Get_tag_line ('^\s*'. a:a_tag. ':')
+        if !tag_matchline | return {} | endif
+        let l:section_end = Get_section_end (tag_matchline)
+        let l:note = Remove_note_give_data (tag_matchline, section_end, a:hash)
+        return {'amount_removed':note.amount_removed, 'target_line':note.target_line, 'tag_line':tag_matchline}
+      endf
 
-  fu! Get_line_to_copy_till (starting_line)
-  endf
+        fu! Get_tag_line (regex)
+          return search (a:regex, 'wcn')
+        endf
+      
+        fu! Remove_note_give_data (tag_matchline, section_end, hash)
+          let l:current_line = a:tag_matchline
+          let l:amount_removed = 0
+          while current_line != a:section_end
+            let l:line_text = getline (current_line)
+            if match (line_text, a:hash) >= 0
+              let amount_removed = Remove_note (current_line)
+              let current_line -=1 "we're on the wrong line cuz we removed it
+              break
+            endif
+            let current_line += 1
+          endw
+          "if current_line is line ('$') | let current_line +=1 | endif "bot_line fix
+          return {'amount_removed':amount_removed, 'target_line':current_line}
+        endf
 
-  fu! Get_line_num_with_meta_data_from (starting_point)
-    return Get_line_of_match_unless_outdent (a:starting_point, "<tags", 1)
-  endf
+          fu! Remove_note (line)
+            "scan for next <tags or line break, adjusting for bounds
+            let l:current_line = Search_till (a:line +1, '<tags = \|^\s*$', 1)
+            execute "silent ". a:line. ",". current_line. "delete_"
+            return (current_line - a:line) +1 "+1 because it's inclusive
+          endf
 
-  fu! IndentLevel (line_num)
-    return indent (a:line_num) / &shiftwidth
-  endf
+            fu! Search_till (line, regex, increment)
+              "scan for next <tags or line break
+              let l:bot_line = line ('$')
+              let l:current_line = a:line
+              while current_line < bot_line && current_line > 0
+                if match (getline (current_line), a:regex) >= 0
+                  let current_line -=1
+                  break
+                endif
+                let current_line += a:increment
+              endw
+              return current_line
+            endf
 
-nnoremap gy :call Update_all_linked_notes()<CR>
+        fu! Get_section_end (start_line) "based on indent
+          "check 
+          " if botline
+          " if indent matches or is less
+          " if starting indent is 0...
+          "   check for text with 0 indent
+          let line_db = {'bot_line':line ('$'), 'current_line':a:start_line +1}
+          let line_db.section_indent = IndentLevel (a:start_line)
+          let line_db.last_textline = a:start_line
+          while 1
+            if Check_section_termination (line_db)
+              break
+            endif
+            let line_db.current_line +=1  
+          endw
+          return line_db.last_textline
+        endf
+
+          fu! Check_section_termination (line_db)
+            let l:current_indent = IndentLevel (a:line_db.current_line)
+            if current_indent <= a:line_db.section_indent && current_indent > 0 | return 1 |endif
+            if a:line_db.section_indent == 0 && current_indent == 0
+              if match (getline (a:line_db.current_line), '^\S') == 0 | return 1| endif
+            endif
+            if current_indent > 0 | let a:line_db.last_textline = a:line_db.current_line | endif
+            if a:line_db.current_line == a:line_db.bot_line | return 1 | endif
+            return 0
+          endf
+
+          fu! IndentLevel (line_num)
+            if match (getline (a:line_num), '^\s\+$') >=0
+              return 0
+            endif
+            return indent (a:line_num) / &shiftwidth
+          endf
+
+nmap gy :call Update_all_linked_notes()<CR>
+nmap <leader>i :set ft=note<cr>
