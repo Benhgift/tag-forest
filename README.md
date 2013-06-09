@@ -2,14 +2,15 @@
 ## Tag-forrest 0.9.1
 Tag your notes when they apply to different subsections, and update those tagged notes when you make changes. (Try the example file)
 
-Install: 
+### Install: 
   - clone everything to a folder in .vim/bundle
   - put this in your ~/.vimrc: `set conceallevel=1`
 
-Use: Press `gy` in normal mode to update all notes bound to the one with the cursor on it. Please see the sample notes file for formatting. To add a new note simply put `<tags = tag1, tag2, tagN>` above your new note and press `gy` in normal mode.  
+### Use: 
+Press `gy` in normal mode to update all notes bound to the one with the cursor on it. Please see the sample notes file for formatting. To add a new note simply put `<tags = tag1, tag2, tagN>` above your new note and press `gy` in normal mode.  
 
 Tag coloumns are hidden by default using vim's conceal feature. 
-Please use correct syntax formatting and keep a linebreak between all notes and section tags as shown in the example file.
+Please use correct syntax formatting and keep a linebreak between all notes and section tags as shown in the example file. Section tags are formatted like `tag:`
 
 To delete a tag put a - in front of it like `<tags = -math, science>` and press `gy`.
 
@@ -26,6 +27,7 @@ To delete a tag put a - in front of it like `<tags = -math, science>` and press 
 
 ## In this version:
  * Added `-` deletion feature
- * Rewrite entire program using indentation to emulate classes (no classes in vimscript...)
+ * Rewrote entire program using indentation to emulate classes (no classes in vimscript...)
  * Fixed a million bugs
  * Indentation is smart now
+ * Made updating notes much less jarring. Keeps scroll/view position
