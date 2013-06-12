@@ -1,5 +1,4 @@
 fu! Update_all_linked_notes()
-  execute "silent normal zR"
   let l:cur_note_data = Parse_note_from_cursor ()
   if cur_note_data == {} | return | endif
   call Remove_notes_marked_for_death (cur_note_data)
@@ -9,6 +8,7 @@ endf
 "Get info on starting note
   fu! Parse_note_from_cursor ()
     let l:pos_data = Get_pos_data ()
+    execute "silent normal zn"
     let l:note_data = Parse_a_note (pos_data['position'][1])
     if note_data == {} | return {} | endif
     call extend (note_data, pos_data)
@@ -18,9 +18,27 @@ endf
   fu! Get_pos_data ()
     let l:pos_data = {'position':getpos ('.')}
     let l:topline_fill = pos_data.position[1] - winsaveview ().topline
+    let l:topline_fill = Check_visable_lines (pos_data.position[1] - topline_fill, pos_data.position[1] -1)
     call extend (pos_data, {'topline_fill':topline_fill})
     return pos_data
   endf
+
+    fu! Check_visable_lines (line_start, line_end)
+      execute "silent normal zN"
+      let l:affected_lines = 0
+      let l:first_fold = 1 "topline has to take into account that fold starts are visable
+      for counter in range ((a:line_end +1) - a:line_start) "+1 because inclusive
+        if foldclosed (a:line_start + counter) < 0
+          let affected_lines += 1
+          let first_fold = 1
+        elseif first_fold
+          let affected_lines += 1
+          let first_fold = 0
+        endif
+      endfo
+      execute "silent normal zn"
+      return affected_lines
+    endf
 
   fu! Parse_a_note (note_line)
     " get metadata
@@ -52,8 +70,8 @@ endf
 
         fu! Get_line_num_with_meta_from (note_line)
           let l:min_search_line = a:note_line - 100 < 1 ? 1 : a:note_line - 100
-          let l:next_tag = search ('^\s*<tags = ', 'bn', min_search_line)
-          let l:next_linebreak = search ('^\s*$', 'bn', min_search_line)
+          let l:next_tag = search ('^\s*<tags = ', 'bcn', min_search_line)
+          let l:next_linebreak = search ('^\s*$', 'bcn', min_search_line)
           return next_tag > next_linebreak ? next_tag : 0
         endf
 
@@ -146,6 +164,7 @@ endf
 
 "Remove marked notes
   fu! Remove_notes_marked_for_death (note_db)
+    execute "silent normal ". "zn"
     let l:position_change = 0
     let l:new_tags = []
     for a_tag in a:note_db.tags
@@ -161,6 +180,7 @@ endf
   endf
 
     fu! Setpos_and_view (cursor, position, topline_fill)
+      execute "silent normal ". "zN"
       call setpos (a:cursor, a:position)
       let l:cur_pos = getpos (a:cursor)[1]
       execute "silent normal ". "zt"
@@ -177,6 +197,7 @@ endf
 
 "Update other matching notes 
   fu! Update_other_matching_notes (note_db)
+    execute "silent normal ". "zn"
     "note = tags, hash, a note copy
     let l:position_change = 0
     for a_tag in a:note_db.tags
@@ -189,7 +210,7 @@ endf
   "insert note at a tag
     fu! Insert_note_at_tag (note_db, a_tag)
       let l:note_pos = Prepare_note_spot (a:note_db.hash, a:a_tag)
-      if note_pos == {} | return 0 | endif
+      if note_pos == {} | echo a:a_tag. " not found" | return 0 | endif
       call Insert_note_with_correct_indentation (note_pos, a:note_db)
       let l:movement = Check_if_movement_required (a:note_db, note_pos)
       return movement
@@ -245,10 +266,11 @@ endf
         endf
 
           fu! Remove_note (line)
-            "scan for next <tags or line break, adjusting for bounds
+            "scan for next <tags or line break
             let l:current_line = Search_till (a:line +1, '<tags = \|^\s*$', 1)
+            let l:amount_removed = (current_line +1) - a:line "inclusive
             execute "silent ". a:line. ",". current_line. "delete_"
-            return (current_line - a:line) +1 "+1 because it's inclusive
+            return amount_removed
           endf
 
             fu! Search_till (line, regex, increment)
@@ -297,5 +319,5 @@ endf
           endf
 
 nmap gy :call Update_all_linked_notes()<CR>
-nmap <leader>i :set ft=note<cr>
+"nmap <leader>i :set ft=note<cr>
 set conceallevel=1
