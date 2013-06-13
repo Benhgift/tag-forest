@@ -1,5 +1,5 @@
 ***
-## Tag-forrest 0.9.2
+## tag forest 0.9.2
 Tag your notes when they apply to different categories, and update all those tagged notes at once when you make changes. (Try the example file)
 
 ## Install: 
