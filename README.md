@@ -5,11 +5,11 @@ Tag your notes when they apply to different categories, and update all those tag
 ## Install: 
 [With Pathogen](https://github.com/tpope/vim-pathogen):
 
-  - `git clone https://github.com/Corm/Tag-forrest.git ~/.vim/bundle/`
+  - `git clone https://github.com/Corm/tag-forest.git ~/.vim/bundle/`
 
 [With Vundle](https://github.com/gmarik/vundle):
 
-  - Put `Bundle 'Corm/Tag-forrest'` into your ~/.vimrc 
+  - Put `Bundle 'Corm/tag-forest'` into your ~/.vimrc 
   - `:BundleInstall`
 
 [Manually](http://i.imgur.com/oh3QVmh.gif?1):
